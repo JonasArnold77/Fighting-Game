@@ -2,57 +2,57 @@ using UnityEngine;
 
 public class FightInputManager : MonoBehaviour
 {
-    [SerializeField] private Camera mainCamera;
+    [Header("References")]
     [SerializeField] private CombatManager combatManager;
-    [SerializeField] private LayerMask clickableLayer;
+
+    [Header("Attack Keys")]
+    [SerializeField] private KeyCode leftHandKey = KeyCode.J;
+    [SerializeField] private KeyCode rightHandKey = KeyCode.L;
+    [SerializeField] private KeyCode leftLegKey = KeyCode.K;
+    [SerializeField] private KeyCode rightLegKey = KeyCode.I;
+
+    [Header("Block")]
+    [SerializeField] private KeyCode blockKey = KeyCode.Space;
 
     private void Update()
     {
-        if (Input.GetMouseButtonDown(0))
+        HandleAttackInput();
+        HandleBlockInput();
+    }
+
+    private void HandleAttackInput()
+    {
+        if (Input.GetKeyDown(leftHandKey))
         {
-            TryAttackWithClickedBodyPart();
+            combatManager.ExecutePlayerAttack(BodyPart.LeftHand);
         }
 
-        if (Input.GetMouseButtonDown(1) || Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(rightHandKey))
+        {
+            combatManager.ExecutePlayerAttack(BodyPart.RightHand);
+        }
+
+        if (Input.GetKeyDown(leftLegKey))
+        {
+            combatManager.ExecutePlayerAttack(BodyPart.LeftLeg);
+        }
+
+        if (Input.GetKeyDown(rightLegKey))
+        {
+            combatManager.ExecutePlayerAttack(BodyPart.RightLeg);
+        }
+    }
+
+    private void HandleBlockInput()
+    {
+        if (Input.GetKeyDown(blockKey))
         {
             combatManager.StartPlayerBlock();
         }
 
-        if (Input.GetMouseButtonUp(1) || Input.GetKeyUp(KeyCode.Space))
+        if (Input.GetKeyUp(blockKey))
         {
             combatManager.StopPlayerBlock();
-        }
-    }
-
-    private void TryAttackWithClickedBodyPart()
-    {
-        Ray ray = mainCamera.ScreenPointToRay(Input.mousePosition);
-
-        if (Physics.Raycast(ray, out RaycastHit hit, 100f, clickableLayer))
-        {
-            Debug.Log("Raycast hit: " + hit.collider.name);
-
-            BodyPartClickable clickable = hit.collider.GetComponent<BodyPartClickable>();
-
-            if (clickable == null)
-            {
-                Debug.Log("Hit object has no BodyPartClickable script.");
-                return;
-            }
-
-            Debug.Log("Clicked body part: " + clickable.BodyPart);
-
-            if (!clickable.Owner.IsPlayer)
-            {
-                Debug.Log("Clicked body part does not belong to player.");
-                return;
-            }
-
-            combatManager.ExecutePlayerAttack(clickable.BodyPart);
-        }
-        else
-        {
-            Debug.Log("Raycast hit nothing.");
         }
     }
 }

@@ -1,4 +1,3 @@
-using UnityEditor;
 using UnityEngine;
 
 public class Fighter : MonoBehaviour
@@ -10,9 +9,28 @@ public class Fighter : MonoBehaviour
 
     [Header("Combat State")]
     public bool IsBlocking;
+    public bool IsAttacking;
 
     [Header("References")]
     [SerializeField] private Animator animator;
+
+    public bool CanMove => !IsAttacking && !IsBlocking;
+
+    public void SetMoveSpeed(float speed)
+    {
+        animator.SetFloat("MoveSpeed", speed);
+    }
+
+    public void StartAttack()
+    {
+        IsAttacking = true;
+        SetMoveSpeed(0f);
+    }
+
+    public void StopAttack()
+    {
+        IsAttacking = false;
+    }
 
     public void PlayAttackAnimation(BodyPart bodyPart)
     {
@@ -39,6 +57,7 @@ public class Fighter : MonoBehaviour
     public void StartBlock()
     {
         IsBlocking = true;
+        SetMoveSpeed(0f);
         animator.SetTrigger("Block");
     }
 
@@ -50,7 +69,7 @@ public class Fighter : MonoBehaviour
     public void TakeDamage(float amount)
     {
         Health -= amount;
-        Health = Mathf.Max(Health, 0);
+        Health = Mathf.Max(Health, 0f);
 
         animator.SetTrigger("Hit");
 
