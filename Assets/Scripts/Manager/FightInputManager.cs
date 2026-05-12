@@ -22,6 +22,9 @@ public class FightInputManager : MonoBehaviour
 
     private void HandleAttackInput()
     {
+        if (combatManager == null)
+            return;
+
         if (Input.GetKeyDown(leftHandKey))
         {
             combatManager.ExecutePlayerAttack(BodyPart.LeftHand);
@@ -45,6 +48,9 @@ public class FightInputManager : MonoBehaviour
 
     private void HandleBlockInput()
     {
+        if (combatManager == null)
+            return;
+
         if (Input.GetKeyDown(blockKey))
         {
             combatManager.StartPlayerBlock();

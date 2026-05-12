@@ -168,9 +168,10 @@ public class CombatManager : MonoBehaviour
     {
         attacker.StartAttack();
 
-        // Wichtig:
-        // Keine automatische Rotation zum Gegner.
-        // Der Angriff wird in der aktuellen Blickrichtung ausgeführt.
+        // NEU:
+        // Erst zum Cube drehen, dann Animation starten.
+        yield return attacker.RotateToCubeBeforeAttackAnimation();
+
         attacker.PlayAttackAnimation(attackingBodyPart);
 
         yield return new WaitForSeconds(attackImpactDelay);
