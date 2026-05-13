@@ -638,6 +638,15 @@ MonoBehaviour:
   attackLookTarget: {fileID: 0}
   attackLookRotationSpeed: 720
   lookRotationOffsetY: 0
+  rotateToCubeBeforeAttackAnimation: 1
+  preAttackRotationSpeed: 1080
+  preAttackMaxDuration: 0.25
+  preAttackStopAngle: 2
+  forceLookAtAfterAttackStartDuration: 0.25
+  attackLookAtUntilNormalizedTime: 0.2
+  postAttackLookTarget: {fileID: 0}
+  postAttackRotationSpeed: 360
+  postAttackStopAngle: 1
   attackAnimatorLayer: 0
   attackStateTag: Attack
 --- !u!95 &698825831 stripped
@@ -730,6 +739,15 @@ MonoBehaviour:
   attackLookTarget: {fileID: 1294760116}
   attackLookRotationSpeed: 720
   lookRotationOffsetY: 0
+  rotateToCubeBeforeAttackAnimation: 1
+  preAttackRotationSpeed: 1080
+  preAttackMaxDuration: 0.25
+  preAttackStopAngle: 2
+  forceLookAtAfterAttackStartDuration: 0.25
+  attackLookAtUntilNormalizedTime: 0.2
+  postAttackLookTarget: {fileID: 0}
+  postAttackRotationSpeed: 360
+  postAttackStopAngle: 1
   attackAnimatorLayer: 0
   attackStateTag: Attack
 --- !u!1 &1194746955
@@ -1021,7 +1039,9 @@ MonoBehaviour:
   attackLockDuration: 0.8
   attackCooldown: 0.2
   attackAngle: 90
-  cancelAfterPercent: 0.559
+  attackEndPercent: 0.8
+  maximumExtraAnimationWait: 1.5
+  cancelAfterPercent: 0.6
   allowPlayerAttackCancel: 1
   allowEnemyAttackCancel: 1
 --- !u!143 &1969154429

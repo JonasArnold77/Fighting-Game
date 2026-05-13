@@ -20,8 +20,12 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private float attackCooldown = 0.2f;
     [SerializeField] private float attackAngle = 90f;
 
+    [Header("Attack Animation Protection")]
+    [SerializeField, Range(0f, 1f)] private float attackEndPercent = 0.98f;
+    [SerializeField] private float maximumExtraAnimationWait = 1.5f;
+
     [Header("Animation Cancel")]
-    [SerializeField, Range(0f, 1f)] private float cancelAfterPercent = 0.7f;
+    [SerializeField, Range(0f, 1f)] private float cancelAfterPercent = 0.9f;
     [SerializeField] private bool allowPlayerAttackCancel = true;
     [SerializeField] private bool allowEnemyAttackCancel = false;
 
@@ -30,9 +34,6 @@ public class CombatManager : MonoBehaviour
 
     private Coroutine playerAttackRoutine;
     private Coroutine enemyAttackRoutine;
-
-    private float playerAttackStartTime;
-    private float enemyAttackStartTime;
 
     public void ExecutePlayerAttack(BodyPart bodyPart)
     {
@@ -44,7 +45,7 @@ public class CombatManager : MonoBehaviour
 
         if (player.IsAttacking)
         {
-            if (allowPlayerAttackCancel && CanCancelAttack(playerAttackStartTime))
+            if (allowPlayerAttackCancel && CanCancelAttack(player))
             {
                 CancelPlayerAttack();
                 StartPlayerAttack(bodyPart);
@@ -69,7 +70,7 @@ public class CombatManager : MonoBehaviour
 
         if (enemy.IsAttacking)
         {
-            if (allowEnemyAttackCancel && CanCancelAttack(enemyAttackStartTime))
+            if (allowEnemyAttackCancel && CanCancelAttack(enemy))
             {
                 CancelEnemyAttack();
                 StartEnemyAttack(bodyPart);
@@ -106,7 +107,6 @@ public class CombatManager : MonoBehaviour
     private void StartPlayerAttack(BodyPart bodyPart)
     {
         playerCanAttack = false;
-        playerAttackStartTime = Time.time;
 
         playerAttackRoutine = StartCoroutine(
             PerformAttack(player, enemy, bodyPart, true)
@@ -116,7 +116,6 @@ public class CombatManager : MonoBehaviour
     private void StartEnemyAttack(BodyPart bodyPart)
     {
         enemyCanAttack = false;
-        enemyAttackStartTime = Time.time;
 
         enemyAttackRoutine = StartCoroutine(
             PerformAttack(enemy, player, bodyPart, false)
@@ -131,10 +130,11 @@ public class CombatManager : MonoBehaviour
             playerAttackRoutine = null;
         }
 
+        player.ResetAttackTriggers();
         player.StopAttack();
         playerCanAttack = true;
 
-        Debug.Log("Player attack canceled.");
+        Debug.Log("Player attack canceled by another attack.");
     }
 
     private void CancelEnemyAttack()
@@ -145,18 +145,24 @@ public class CombatManager : MonoBehaviour
             enemyAttackRoutine = null;
         }
 
+        enemy.ResetAttackTriggers();
         enemy.StopAttack();
         enemyCanAttack = true;
 
-        Debug.Log("Enemy attack canceled.");
+        Debug.Log("Enemy attack canceled by another attack.");
     }
 
-    private bool CanCancelAttack(float attackStartTime)
+    private bool CanCancelAttack(Fighter attacker)
     {
-        float elapsedTime = Time.time - attackStartTime;
-        float currentPercent = elapsedTime / attackLockDuration;
+        if (attacker == null)
+            return false;
 
-        return currentPercent >= cancelAfterPercent;
+        if (!attacker.IsInAttackTaggedAnimation())
+            return false;
+
+        float animationPercent = attacker.GetCurrentAttackAnimationNormalizedTime();
+
+        return animationPercent >= cancelAfterPercent;
     }
 
     private IEnumerator PerformAttack(
@@ -168,8 +174,6 @@ public class CombatManager : MonoBehaviour
     {
         attacker.StartAttack();
 
-        // NEU:
-        // Erst zum Cube drehen, dann Animation starten.
         yield return attacker.RotateToCubeBeforeAttackAnimation();
 
         attacker.PlayAttackAnimation(attackingBodyPart);
@@ -197,6 +201,8 @@ public class CombatManager : MonoBehaviour
 
         yield return new WaitForSeconds(remainingLockTime);
 
+        yield return WaitUntilAttackAnimationCanEnd(attacker);
+
         attacker.StopAttack();
 
         yield return new WaitForSeconds(attackCooldown);
@@ -210,6 +216,29 @@ public class CombatManager : MonoBehaviour
         {
             enemyCanAttack = true;
             enemyAttackRoutine = null;
+        }
+    }
+
+    private IEnumerator WaitUntilAttackAnimationCanEnd(Fighter attacker)
+    {
+        float timer = 0f;
+
+        while (attacker != null && attacker.IsInAttackTaggedAnimation())
+        {
+            float animationPercent = attacker.GetCurrentAttackAnimationNormalizedTime();
+
+            if (animationPercent >= attackEndPercent)
+                yield break;
+
+            timer += Time.deltaTime;
+
+            if (timer >= maximumExtraAnimationWait)
+            {
+                Debug.LogWarning($"{attacker.name} attack animation wait ended by fallback.");
+                yield break;
+            }
+
+            yield return null;
         }
     }
 

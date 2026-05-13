@@ -68,6 +68,12 @@ public class Fighter : MonoBehaviour
         if (animator == null)
             return;
 
+        if (IsAttacking || IsBlocking)
+        {
+            animator.SetFloat("MoveSpeed", 0f);
+            return;
+        }
+
         animator.SetFloat("MoveSpeed", speed);
     }
 
@@ -83,6 +89,7 @@ public class Fighter : MonoBehaviour
     public void StopAttack()
     {
         IsAttacking = false;
+        SetMoveSpeed(0f);
     }
 
     public IEnumerator RotateToCubeBeforeAttackAnimation()
@@ -116,6 +123,8 @@ public class Fighter : MonoBehaviour
         if (animator == null)
             return;
 
+        ResetAttackTriggers();
+
         switch (bodyPart)
         {
             case BodyPart.LeftHand:
@@ -136,8 +145,68 @@ public class Fighter : MonoBehaviour
         }
     }
 
+    public void ResetAttackTriggers()
+    {
+        if (animator == null)
+            return;
+
+        animator.ResetTrigger("LeftPunch");
+        animator.ResetTrigger("RightPunch");
+        animator.ResetTrigger("LeftKick");
+        animator.ResetTrigger("RightKick");
+    }
+
+    public bool IsInAttackTaggedAnimation()
+    {
+        if (animator == null)
+            return false;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(attackAnimatorLayer);
+
+        if (currentState.IsTag(attackStateTag))
+            return true;
+
+        if (animator.IsInTransition(attackAnimatorLayer))
+        {
+            AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(attackAnimatorLayer);
+
+            if (nextState.IsTag(attackStateTag))
+                return true;
+        }
+
+        return false;
+    }
+
+    public float GetCurrentAttackAnimationNormalizedTime()
+    {
+        if (animator == null)
+            return 0f;
+
+        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(attackAnimatorLayer);
+
+        if (currentState.IsTag(attackStateTag))
+        {
+            return Mathf.Clamp01(currentState.normalizedTime);
+        }
+
+        if (animator.IsInTransition(attackAnimatorLayer))
+        {
+            AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(attackAnimatorLayer);
+
+            if (nextState.IsTag(attackStateTag))
+            {
+                return Mathf.Clamp01(nextState.normalizedTime);
+            }
+        }
+
+        return 0f;
+    }
+
     public void StartBlock()
     {
+        if (IsAttacking)
+            return;
+
         IsBlocking = true;
         SetMoveSpeed(0f);
 
@@ -170,7 +239,7 @@ public class Fighter : MonoBehaviour
         if (animator == null)
             return;
 
-        bool isInAttackTaggedState = IsInAttackTaggedState();
+        bool isInAttackTaggedState = IsInAttackTaggedAnimation();
 
         if (isInAttackTaggedState)
         {
@@ -232,24 +301,6 @@ public class Fighter : MonoBehaviour
         {
             isPostAttackRotating = false;
         }
-    }
-
-    private bool IsInAttackTaggedState()
-    {
-        AnimatorStateInfo currentState = animator.GetCurrentAnimatorStateInfo(attackAnimatorLayer);
-
-        if (currentState.IsTag(attackStateTag))
-            return true;
-
-        if (animator.IsInTransition(attackAnimatorLayer))
-        {
-            AnimatorStateInfo nextState = animator.GetNextAnimatorStateInfo(attackAnimatorLayer);
-
-            if (nextState.IsTag(attackStateTag))
-                return true;
-        }
-
-        return false;
     }
 
     private bool RotateTowardsTarget(Transform target, float rotationSpeed, float stopAngle)
