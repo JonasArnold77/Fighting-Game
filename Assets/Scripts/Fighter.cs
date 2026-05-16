@@ -11,9 +11,18 @@ public class Fighter : MonoBehaviour
     [Header("Combat State")]
     public bool IsBlocking;
     public bool IsAttacking;
+    public bool IsHit { get; private set; }
+
+    [Header("Hit Stagger")]
+    [Tooltip("Wie lange der Charakter nach einem Treffer nicht bewegen kann.")]
+    [SerializeField] private float hitStaggerDuration = 0.5f;
 
     [Header("References")]
     [SerializeField] private Animator animator;
+
+    [Header("Attack Hitboxes")]
+    [Tooltip("Je eine AttackHitbox pro Körperteil (LeftHand, RightHand, LeftLeg, RightLeg).")]
+    [SerializeField] private AttackHitbox[] attackHitboxes;
 
     [Header("Attack Look At Cube")]
     [SerializeField] private Transform attackLookTarget;
@@ -26,7 +35,7 @@ public class Fighter : MonoBehaviour
     [SerializeField] private float preAttackMaxDuration = 0.25f;
     [SerializeField] private float preAttackStopAngle = 2f;
 
-    [Tooltip("Wie lange ab StartAttack zus�tzlich zum Cube gedreht wird.")]
+    [Tooltip("Wie lange ab StartAttack zus�tzlich zum Cube gedreht wird.")]
     [SerializeField] private float forceLookAtAfterAttackStartDuration = 0.25f;
 
     [Tooltip("Bis zu welchem Prozent der Attack-Animation weiter zum Cube gedreht wird. 0.2 = nur die ersten 20%.")]
@@ -47,13 +56,21 @@ public class Fighter : MonoBehaviour
     private bool isPostAttackRotating;
     private float attackStartTime;
 
-    public bool CanMove => !IsAttacking && !IsBlocking;
+    public bool CanMove => !IsAttacking && !IsBlocking && !IsHit;
 
     private void Awake()
     {
         if (animator == null)
-        {
             animator = GetComponent<Animator>();
+
+        // Owner auf allen Hitboxen setzen, damit Self-Hits verhindert werden
+        if (attackHitboxes != null)
+        {
+            foreach (AttackHitbox hitbox in attackHitboxes)
+            {
+                if (hitbox != null)
+                    hitbox.Owner = this;
+            }
         }
     }
 
@@ -89,7 +106,43 @@ public class Fighter : MonoBehaviour
     public void StopAttack()
     {
         IsAttacking = false;
+        DeactivateAllHitboxes();
         SetMoveSpeed(0f);
+    }
+
+    /// <summary>
+    /// Aktiviert die Hitbox für das angegebene Körperteil und gibt sie zurück.
+    /// Gibt null zurück wenn keine passende Hitbox konfiguriert ist.
+    /// </summary>
+    public AttackHitbox ActivateHitboxForBodyPart(BodyPart bodyPart)
+    {
+        if (attackHitboxes == null)
+            return null;
+
+        foreach (AttackHitbox hitbox in attackHitboxes)
+        {
+            if (hitbox != null && hitbox.BodyPart == bodyPart)
+            {
+                hitbox.SetActive(true);
+                return hitbox;
+            }
+        }
+
+        Debug.LogWarning($"[Fighter] Keine Hitbox für {bodyPart} auf {name} gefunden.");
+        return null;
+    }
+
+    /// <summary>Deaktiviert alle Hitboxen sofort.</summary>
+    public void DeactivateAllHitboxes()
+    {
+        if (attackHitboxes == null)
+            return;
+
+        foreach (AttackHitbox hitbox in attackHitboxes)
+        {
+            if (hitbox != null)
+                hitbox.SetActive(false);
+        }
     }
 
     public IEnumerator RotateToCubeBeforeAttackAnimation()
@@ -231,7 +284,17 @@ public class Fighter : MonoBehaviour
             animator.SetTrigger("Hit");
         }
 
+        StartCoroutine(HitStagger());
+
         Debug.Log($"{name} took {amount} damage. Health: {Health}");
+    }
+
+    private IEnumerator HitStagger()
+    {
+        IsHit = true;
+        SetMoveSpeed(0f);
+        yield return new WaitForSeconds(hitStaggerDuration);
+        IsHit = false;
     }
 
     private void HandleAttackLookAt()

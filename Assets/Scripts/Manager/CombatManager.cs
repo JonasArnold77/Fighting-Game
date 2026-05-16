@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -12,13 +13,13 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private float kickDamage = 15f;
     [SerializeField] private float blockDamageMultiplier = 0.25f;
 
-    [Header("Attack Settings")]
-    [SerializeField] private float punchRange = 1.4f;
-    [SerializeField] private float kickRange = 1.8f;
+    [Header("Attack Timing")]
+    [Tooltip("Sekunden nach Animationsstart bis die Hitbox aktiviert wird.")]
     [SerializeField] private float attackImpactDelay = 0.35f;
+    [Tooltip("Wie lange die Hitbox im Treffermoment aktiv bleibt.")]
+    [SerializeField] private float hitboxActiveDuration = 0.2f;
     [SerializeField] private float attackLockDuration = 0.8f;
     [SerializeField] private float attackCooldown = 0.2f;
-    [SerializeField] private float attackAngle = 90f;
 
     [Header("Attack Animation Protection")]
     [SerializeField, Range(0f, 1f)] private float attackEndPercent = 0.98f;
@@ -109,7 +110,7 @@ public class CombatManager : MonoBehaviour
         playerCanAttack = false;
 
         playerAttackRoutine = StartCoroutine(
-            PerformAttack(player, enemy, bodyPart, true)
+            PerformAttack(player, bodyPart, true)
         );
     }
 
@@ -118,7 +119,7 @@ public class CombatManager : MonoBehaviour
         enemyCanAttack = false;
 
         enemyAttackRoutine = StartCoroutine(
-            PerformAttack(enemy, player, bodyPart, false)
+            PerformAttack(enemy, bodyPart, false)
         );
     }
 
@@ -165,12 +166,7 @@ public class CombatManager : MonoBehaviour
         return animationPercent >= cancelAfterPercent;
     }
 
-    private IEnumerator PerformAttack(
-        Fighter attacker,
-        Fighter target,
-        BodyPart attackingBodyPart,
-        bool isPlayerAttack
-    )
+    private IEnumerator PerformAttack(Fighter attacker, BodyPart attackingBodyPart, bool isPlayerAttack)
     {
         attacker.StartAttack();
 
@@ -178,27 +174,56 @@ public class CombatManager : MonoBehaviour
 
         attacker.PlayAttackAnimation(attackingBodyPart);
 
+        // Warten bis zum Treffermoment in der Animation
         yield return new WaitForSeconds(attackImpactDelay);
 
-        if (IsTargetInAttackRange(attacker.transform, target.transform, attackingBodyPart))
+        // Hitbox aktivieren und auf Kollision warten
+        bool hitDetected = false;
+        Hurtbox detectedHurtbox = null;
+
+        AttackHitbox hitbox = attacker.ActivateHitboxForBodyPart(attackingBodyPart);
+
+        if (hitbox != null)
+        {
+            Action<Hurtbox> onHit = (hurtbox) =>
+            {
+                hitDetected = true;
+                detectedHurtbox = hurtbox;
+            };
+
+            hitbox.HitDetected += onHit;
+
+            float timer = 0f;
+            while (timer < hitboxActiveDuration && !hitDetected)
+            {
+                timer += Time.deltaTime;
+                yield return null;
+            }
+
+            hitbox.HitDetected -= onHit;
+            attacker.DeactivateAllHitboxes();
+        }
+
+        // Schaden anwenden
+        if (hitDetected && detectedHurtbox != null)
         {
             float damage = GetDamageForBodyPart(attackingBodyPart);
 
-            if (target.IsBlocking)
+            if (detectedHurtbox.Owner.IsBlocking)
             {
                 damage *= blockDamageMultiplier;
-                Debug.Log($"{target.name} blocked the attack!");
+                Debug.Log($"{detectedHurtbox.Owner.name} hat den Angriff geblockt!");
             }
 
-            target.TakeDamage(damage);
+            detectedHurtbox.Owner.TakeDamage(damage);
         }
         else
         {
-            Debug.Log($"{attacker.name} missed.");
+            Debug.Log($"{attacker.name} hat verfehlt.");
         }
 
-        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay);
-
+        // Restliche Lock-Zeit abwarten (abzüglich bereits vergangener Zeit)
+        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay - hitboxActiveDuration);
         yield return new WaitForSeconds(remainingLockTime);
 
         yield return WaitUntilAttackAnimationCanEnd(attacker);
@@ -240,25 +265,6 @@ public class CombatManager : MonoBehaviour
 
             yield return null;
         }
-    }
-
-    private bool IsTargetInAttackRange(Transform attacker, Transform target, BodyPart bodyPart)
-    {
-        Vector3 directionToTarget = target.position - attacker.position;
-        directionToTarget.y = 0f;
-
-        float distance = directionToTarget.magnitude;
-        float range = IsKick(bodyPart) ? kickRange : punchRange;
-
-        if (distance > range)
-            return false;
-
-        float angleToTarget = Vector3.Angle(attacker.forward, directionToTarget);
-
-        if (angleToTarget > attackAngle * 0.5f)
-            return false;
-
-        return true;
     }
 
     private float GetDamageForBodyPart(BodyPart bodyPart)
