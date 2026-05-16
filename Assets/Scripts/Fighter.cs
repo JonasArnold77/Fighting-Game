@@ -55,6 +55,7 @@ public class Fighter : MonoBehaviour
     private bool wasInAttackTaggedState;
     private bool isPostAttackRotating;
     private float attackStartTime;
+    private Coroutine hitStaggerCoroutine;
 
     public bool CanMove => !IsAttacking && !IsBlocking && !IsHit;
 
@@ -281,10 +282,16 @@ public class Fighter : MonoBehaviour
 
         if (animator != null)
         {
+            // Reset vor Set → erzwingt Neustart auch wenn Trigger noch pending ist
+            animator.ResetTrigger("Hit");
             animator.SetTrigger("Hit");
         }
 
-        StartCoroutine(HitStagger());
+        // Läuft bereits eine Stagger-Coroutine, abbrechen und von vorne starten
+        if (hitStaggerCoroutine != null)
+            StopCoroutine(hitStaggerCoroutine);
+
+        hitStaggerCoroutine = StartCoroutine(HitStagger());
 
         Debug.Log($"{name} took {amount} damage. Health: {Health}");
     }
@@ -295,6 +302,7 @@ public class Fighter : MonoBehaviour
         SetMoveSpeed(0f);
         yield return new WaitForSeconds(hitStaggerDuration);
         IsHit = false;
+        hitStaggerCoroutine = null;
     }
 
     private void HandleAttackLookAt()
