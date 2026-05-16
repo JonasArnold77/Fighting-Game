@@ -217,6 +217,59 @@ Transform:
   m_Children: []
   m_Father: {fileID: 1504963316}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &67915434
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 67915436}
+  - component: {fileID: 67915435}
+  m_Layer: 0
+  m_Name: MoveSelectionUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &67915435
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 67915434}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 230ef280c039c844686d14a5016431bc, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  fightInputManager: {fileID: 1474442455}
+  allMoves:
+  - {fileID: 11400000, guid: 4be9eccba4e9d294b9d424c431e87042, type: 2}
+  - {fileID: 11400000, guid: 75082889908b7a148b25189ed08c7766, type: 2}
+  - {fileID: 11400000, guid: 92aa29a8c8542064686d8094d94e31ce, type: 2}
+  - {fileID: 11400000, guid: a619a6d48c84529418361b9e063d34a7, type: 2}
+  - {fileID: 11400000, guid: 24e559bc310eccd42adf7721bacc222e, type: 2}
+  - {fileID: 11400000, guid: 255315b70f03c5047a26712ee6f120be, type: 2}
+  uiFont: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!4 &67915436
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 67915434}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 40.983383, y: -3.8383749, z: 27.980713}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &110410696
 GameObject:
   m_ObjectHideFlags: 0
@@ -1746,7 +1799,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   combatManager: {fileID: 1592572722}
-  availableMoves: []
   minAttackDelay: 2
   maxAttackDelay: 4
 --- !u!1 &737925037
@@ -6221,3 +6273,4 @@ SceneRoots:
   - {fileID: 698825828}
   - {fileID: 1375094500}
   - {fileID: 1294760116}
+  - {fileID: 67915436}

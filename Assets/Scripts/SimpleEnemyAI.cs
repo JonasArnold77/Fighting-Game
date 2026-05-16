@@ -1,23 +1,39 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class SimpleEnemyAI : MonoBehaviour
 {
     [SerializeField] private CombatManager combatManager;
 
-    [Header("Moves")]
-    [Tooltip("Der Gegner wählt zufällig aus dieser Liste.")]
-    [SerializeField] private MoveData[] availableMoves;
-
     [Header("Timing")]
     [SerializeField] private float minAttackDelay = 2f;
     [SerializeField] private float maxAttackDelay = 4f;
 
-    private void Start()
+    private readonly List<MoveData> allMoves = new List<MoveData>();
+
+    /// <summary>
+    /// Wird vom MoveSelectionMenu aufgerufen sobald der Spieler seine Auswahl bestätigt.
+    /// </summary>
+    public void Configure(List<MoveData> selectedMoves)
     {
-        if (availableMoves == null || availableMoves.Length == 0)
+        allMoves.Clear();
+
+        if (selectedMoves != null)
         {
-            Debug.LogWarning("[SimpleEnemyAI] Keine Moves konfiguriert – KI greift nicht an.");
+            foreach (MoveData move in selectedMoves)
+                if (move != null) allMoves.Add(move);
+        }
+    }
+
+    /// <summary>
+    /// Startet die KI-Angriffs-Loop. Wird nach Configure() vom Menu aufgerufen.
+    /// </summary>
+    public void StartFighting()
+    {
+        if (allMoves.Count == 0)
+        {
+            Debug.LogWarning("[SimpleEnemyAI] Keine Moves ausgewählt – KI greift nicht an.");
             return;
         }
 
@@ -29,11 +45,7 @@ public class SimpleEnemyAI : MonoBehaviour
         while (true)
         {
             yield return new WaitForSeconds(Random.Range(minAttackDelay, maxAttackDelay));
-
-            MoveData move = availableMoves[Random.Range(0, availableMoves.Length)];
-
-            if (move != null)
-                combatManager.ExecuteEnemyAttack(move);
+            combatManager.ExecuteEnemyAttack(allMoves[Random.Range(0, allMoves.Count)]);
         }
     }
 }

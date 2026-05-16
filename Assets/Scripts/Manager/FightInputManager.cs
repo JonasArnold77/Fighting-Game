@@ -20,6 +20,15 @@ public class FightInputManager : MonoBehaviour
     [Header("Block")]
     [SerializeField] private KeyCode blockKey = KeyCode.Space;
 
+    /// <summary>Wird vom MoveSelectionMenu aufgerufen um die Spieler-Moves zu setzen.</summary>
+    public void Configure(MoveData leftHand, MoveData rightHand, MoveData leftLeg, MoveData rightLeg)
+    {
+        leftHandMove  = leftHand;
+        rightHandMove = rightHand;
+        leftLegMove   = leftLeg;
+        rightLegMove  = rightLeg;
+    }
+
     private void Update()
     {
         HandleAttackInput();
