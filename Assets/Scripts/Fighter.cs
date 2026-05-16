@@ -19,6 +19,7 @@ public class Fighter : MonoBehaviour
 
     [Header("References")]
     [SerializeField] private Animator animator;
+    [SerializeField] private MoveAnimationController moveAnimationController;
 
     [Header("Attack Hitboxes")]
     [Tooltip("Je eine AttackHitbox pro Körperteil (LeftHand, RightHand, LeftLeg, RightLeg).")]
@@ -64,7 +65,12 @@ public class Fighter : MonoBehaviour
         if (animator == null)
             animator = GetComponent<Animator>();
 
-        // Owner auf allen Hitboxen setzen, damit Self-Hits verhindert werden
+        if (moveAnimationController == null)
+            moveAnimationController = GetComponent<MoveAnimationController>();
+
+        if (moveAnimationController == null)
+            Debug.LogWarning($"[Fighter] Kein MoveAnimationController auf {name} gefunden – Angriffsanimationen werden nicht abgespielt.");
+
         if (attackHitboxes != null)
         {
             foreach (AttackHitbox hitbox in attackHitboxes)
@@ -104,11 +110,24 @@ public class Fighter : MonoBehaviour
         SetMoveSpeed(0f);
     }
 
+    /// <summary>Spielt einen Move über den MoveAnimationController ab.</summary>
+    public void PlayMove(MoveData move)
+    {
+        if (moveAnimationController == null)
+        {
+            Debug.LogWarning($"[Fighter] PlayMove auf {name} – kein MoveAnimationController vorhanden.");
+            return;
+        }
+
+        moveAnimationController.PlayMove(move);
+    }
+
     public void StopAttack()
     {
         IsAttacking = false;
         DeactivateAllHitboxes();
         SetMoveSpeed(0f);
+        moveAnimationController?.PlayLocomotion();
     }
 
     /// <summary>
@@ -181,19 +200,19 @@ public class Fighter : MonoBehaviour
 
         switch (bodyPart)
         {
-            case BodyPart.LeftHand:
+            case BodyPart.L_Hand:
                 animator.SetTrigger("LeftPunch");
                 break;
 
-            case BodyPart.RightHand:
+            case BodyPart.R_Hand:
                 animator.SetTrigger("RightPunch");
                 break;
 
-            case BodyPart.LeftLeg:
+            case BodyPart.L_Leg:
                 animator.SetTrigger("LeftKick");
                 break;
 
-            case BodyPart.RightLeg:
+            case BodyPart.R_Leg:
                 animator.SetTrigger("RightKick");
                 break;
         }
@@ -275,19 +294,14 @@ public class Fighter : MonoBehaviour
         IsBlocking = false;
     }
 
-    public void TakeDamage(float amount)
+    /// <param name="hitZone">Getroffene Zone – steuert welche Hit-Animation abgespielt wird.</param>
+    public void TakeDamage(float amount, TargetZone hitZone = TargetZone.Torso)
     {
         Health -= amount;
         Health = Mathf.Max(Health, 0f);
 
-        if (animator != null)
-        {
-            // Reset vor Set → erzwingt Neustart auch wenn Trigger noch pending ist
-            animator.ResetTrigger("Hit");
-            animator.SetTrigger("Hit");
-        }
+        moveAnimationController?.PlayHitReaction(hitZone);
 
-        // Läuft bereits eine Stagger-Coroutine, abbrechen und von vorne starten
         if (hitStaggerCoroutine != null)
             StopCoroutine(hitStaggerCoroutine);
 

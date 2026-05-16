@@ -1,7 +1,2 @@
-public enum BodyPart
-{
-    LeftHand,
-    RightHand,
-    LeftLeg,
-    RightLeg
-}
+// BodyPart wurde nach Assets/Scripts/Enums.cs verschoben.
+// Diese Datei bleibt leer um keine doppelte Definition zu erzeugen.

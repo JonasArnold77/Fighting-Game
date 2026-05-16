@@ -1711,6 +1711,7 @@ MonoBehaviour:
   IsAttacking: 0
   hitStaggerDuration: 0.5
   animator: {fileID: 698825831}
+  moveAnimationController: {fileID: 0}
   attackHitboxes: []
   attackLookTarget: {fileID: 0}
   attackLookRotationSpeed: 720
@@ -1745,6 +1746,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   combatManager: {fileID: 1592572722}
+  availableMoves: []
   minAttackDelay: 2
   maxAttackDelay: 4
 --- !u!1 &737925037
@@ -1976,6 +1978,7 @@ MonoBehaviour:
   IsAttacking: 0
   hitStaggerDuration: 0.5
   animator: {fileID: 919132148950792027}
+  moveAnimationController: {fileID: 0}
   attackHitboxes:
   - {fileID: 1204113181}
   - {fileID: 590628715}
@@ -2902,6 +2905,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   combatManager: {fileID: 1592572722}
+  leftHandMove: {fileID: 11400000, guid: 75082889908b7a148b25189ed08c7766, type: 2}
+  rightHandMove: {fileID: 11400000, guid: 24e559bc310eccd42adf7721bacc222e, type: 2}
+  leftLegMove: {fileID: 11400000, guid: 92aa29a8c8542064686d8094d94e31ce, type: 2}
+  rightLegMove: {fileID: 11400000, guid: 255315b70f03c5047a26712ee6f120be, type: 2}
   leftHandKey: 106
   rightHandKey: 108
   leftLegKey: 107
@@ -3112,8 +3119,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 869747213}
   enemy: {fileID: 698825830}
-  punchDamage: 10
-  kickDamage: 15
   blockDamageMultiplier: 0.25
   attackImpactDelay: 0.4
   hitboxActiveDuration: 0.2
@@ -3730,6 +3735,7 @@ GameObject:
   - component: {fileID: 2145589701}
   - component: {fileID: 2145589700}
   - component: {fileID: 2145589705}
+  - component: {fileID: 2145589706}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -3802,6 +3808,7 @@ MonoBehaviour:
   IsAttacking: 0
   hitStaggerDuration: 0.5
   animator: {fileID: 2145589700}
+  moveAnimationController: {fileID: 0}
   attackHitboxes: []
   attackLookTarget: {fileID: 1294760116}
   attackLookRotationSpeed: 720
@@ -3856,6 +3863,33 @@ MonoBehaviour:
   characterController: {fileID: 2145589701}
   fighter: {fileID: 2145589703}
   playerTransform: {fileID: 543450652872420832}
+--- !u!114 &2145589706
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2145589699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4c797b01e7601546959797de9792fad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 2145589700}
+  locomotionStateName: Locomotion
+  hitReactions:
+  - zone: 0
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+  - zone: 1
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+  - zone: 2
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+  - zone: 3
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+  - zone: 4
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+  - zone: 5
+    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
 --- !u!4 &57086944203391623
 Transform:
   m_ObjectHideFlags: 0
@@ -4159,6 +4193,7 @@ GameObject:
   - component: {fileID: 1969154430}
   - component: {fileID: 1969154429}
   - component: {fileID: 919132148950792027}
+  - component: {fileID: 919132148950792028}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -4187,6 +4222,21 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!114 &919132148950792028
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148950792026}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a4c797b01e7601546959797de9792fad, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  animator: {fileID: 919132148950792027}
+  locomotionStateName: Locomotion
+  hitReactions: []
 --- !u!4 &1017971966661819735
 Transform:
   m_ObjectHideFlags: 0

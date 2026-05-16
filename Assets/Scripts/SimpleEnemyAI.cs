@@ -4,11 +4,23 @@ using UnityEngine;
 public class SimpleEnemyAI : MonoBehaviour
 {
     [SerializeField] private CombatManager combatManager;
+
+    [Header("Moves")]
+    [Tooltip("Der Gegner wählt zufällig aus dieser Liste.")]
+    [SerializeField] private MoveData[] availableMoves;
+
+    [Header("Timing")]
     [SerializeField] private float minAttackDelay = 2f;
     [SerializeField] private float maxAttackDelay = 4f;
 
     private void Start()
     {
+        if (availableMoves == null || availableMoves.Length == 0)
+        {
+            Debug.LogWarning("[SimpleEnemyAI] Keine Moves konfiguriert – KI greift nicht an.");
+            return;
+        }
+
         StartCoroutine(AILoop());
     }
 
@@ -18,28 +30,10 @@ public class SimpleEnemyAI : MonoBehaviour
         {
             yield return new WaitForSeconds(Random.Range(minAttackDelay, maxAttackDelay));
 
-            BodyPart randomAttack = GetRandomAttack();
-            combatManager.ExecuteEnemyAttack(randomAttack);
-        }
-    }
+            MoveData move = availableMoves[Random.Range(0, availableMoves.Length)];
 
-    private BodyPart GetRandomAttack()
-    {
-        int value = Random.Range(0, 4);
-
-        switch (value)
-        {
-            case 0:
-                return BodyPart.LeftHand;
-
-            case 1:
-                return BodyPart.RightHand;
-
-            case 2:
-                return BodyPart.LeftLeg;
-
-            default:
-                return BodyPart.RightLeg;
+            if (move != null)
+                combatManager.ExecuteEnemyAttack(move);
         }
     }
 }

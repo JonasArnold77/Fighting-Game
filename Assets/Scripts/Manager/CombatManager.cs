@@ -9,14 +9,12 @@ public class CombatManager : MonoBehaviour
     [SerializeField] private Fighter enemy;
 
     [Header("Damage")]
-    [SerializeField] private float punchDamage = 10f;
-    [SerializeField] private float kickDamage = 15f;
     [SerializeField] private float blockDamageMultiplier = 0.25f;
 
     [Header("Attack Timing")]
     [Tooltip("Sekunden nach Animationsstart bis die Hitbox aktiviert wird.")]
     [SerializeField] private float attackImpactDelay = 0.35f;
-    [Tooltip("Wie lange die Hitbox im Treffermoment aktiv bleibt.")]
+    [Tooltip("Fallback-Hitbox-Dauer falls MoveData.hitboxActiveTime = 0.")]
     [SerializeField] private float hitboxActiveDuration = 0.2f;
     [SerializeField] private float attackLockDuration = 0.8f;
     [SerializeField] private float attackCooldown = 0.2f;
@@ -36,9 +34,13 @@ public class CombatManager : MonoBehaviour
     private Coroutine playerAttackRoutine;
     private Coroutine enemyAttackRoutine;
 
-    public void ExecutePlayerAttack(BodyPart bodyPart)
+    // -------------------------------------------------------------------------
+    // Public API
+    // -------------------------------------------------------------------------
+
+    public void ExecutePlayerAttack(MoveData move)
     {
-        if (player == null || enemy == null)
+        if (move == null || player == null || enemy == null)
             return;
 
         if (player.IsBlocking)
@@ -49,7 +51,7 @@ public class CombatManager : MonoBehaviour
             if (allowPlayerAttackCancel && CanCancelAttack(player))
             {
                 CancelPlayerAttack();
-                StartPlayerAttack(bodyPart);
+                StartPlayerAttack(move);
             }
 
             return;
@@ -58,12 +60,12 @@ public class CombatManager : MonoBehaviour
         if (!playerCanAttack)
             return;
 
-        StartPlayerAttack(bodyPart);
+        StartPlayerAttack(move);
     }
 
-    public void ExecuteEnemyAttack(BodyPart bodyPart)
+    public void ExecuteEnemyAttack(MoveData move)
     {
-        if (enemy == null || player == null)
+        if (move == null || enemy == null || player == null)
             return;
 
         if (enemy.IsBlocking)
@@ -74,7 +76,7 @@ public class CombatManager : MonoBehaviour
             if (allowEnemyAttackCancel && CanCancelAttack(enemy))
             {
                 CancelEnemyAttack();
-                StartEnemyAttack(bodyPart);
+                StartEnemyAttack(move);
             }
 
             return;
@@ -83,15 +85,12 @@ public class CombatManager : MonoBehaviour
         if (!enemyCanAttack)
             return;
 
-        StartEnemyAttack(bodyPart);
+        StartEnemyAttack(move);
     }
 
     public void StartPlayerBlock()
     {
-        if (player == null)
-            return;
-
-        if (player.IsAttacking)
+        if (player == null || player.IsAttacking)
             return;
 
         player.StartBlock();
@@ -105,22 +104,20 @@ public class CombatManager : MonoBehaviour
         player.StopBlock();
     }
 
-    private void StartPlayerAttack(BodyPart bodyPart)
+    // -------------------------------------------------------------------------
+    // Private
+    // -------------------------------------------------------------------------
+
+    private void StartPlayerAttack(MoveData move)
     {
         playerCanAttack = false;
-
-        playerAttackRoutine = StartCoroutine(
-            PerformAttack(player, bodyPart, true)
-        );
+        playerAttackRoutine = StartCoroutine(PerformAttack(player, move, true));
     }
 
-    private void StartEnemyAttack(BodyPart bodyPart)
+    private void StartEnemyAttack(MoveData move)
     {
         enemyCanAttack = false;
-
-        enemyAttackRoutine = StartCoroutine(
-            PerformAttack(enemy, bodyPart, false)
-        );
+        enemyAttackRoutine = StartCoroutine(PerformAttack(enemy, move, false));
     }
 
     private void CancelPlayerAttack()
@@ -131,11 +128,9 @@ public class CombatManager : MonoBehaviour
             playerAttackRoutine = null;
         }
 
-        player.ResetAttackTriggers();
         player.StopAttack();
         playerCanAttack = true;
-
-        Debug.Log("Player attack canceled by another attack.");
+        Debug.Log("Player attack canceled.");
     }
 
     private void CancelEnemyAttack()
@@ -146,42 +141,35 @@ public class CombatManager : MonoBehaviour
             enemyAttackRoutine = null;
         }
 
-        enemy.ResetAttackTriggers();
         enemy.StopAttack();
         enemyCanAttack = true;
-
-        Debug.Log("Enemy attack canceled by another attack.");
+        Debug.Log("Enemy attack canceled.");
     }
 
     private bool CanCancelAttack(Fighter attacker)
     {
-        if (attacker == null)
-            return false;
-
         if (!attacker.IsInAttackTaggedAnimation())
             return false;
 
-        float animationPercent = attacker.GetCurrentAttackAnimationNormalizedTime();
-
-        return animationPercent >= cancelAfterPercent;
+        return attacker.GetCurrentAttackAnimationNormalizedTime() >= cancelAfterPercent;
     }
 
-    private IEnumerator PerformAttack(Fighter attacker, BodyPart attackingBodyPart, bool isPlayerAttack)
+    private IEnumerator PerformAttack(Fighter attacker, MoveData move, bool isPlayerAttack)
     {
         attacker.StartAttack();
 
         yield return attacker.RotateToCubeBeforeAttackAnimation();
 
-        attacker.PlayAttackAnimation(attackingBodyPart);
+        // Clip über MoveAnimationController abspielen
+        attacker.PlayMove(move);
 
-        // Warten bis zum Treffermoment in der Animation
         yield return new WaitForSeconds(attackImpactDelay);
 
-        // Hitbox aktivieren und auf Kollision warten
+        // Hitbox aktivieren
         bool hitDetected = false;
         Hurtbox detectedHurtbox = null;
 
-        AttackHitbox hitbox = attacker.ActivateHitboxForBodyPart(attackingBodyPart);
+        AttackHitbox hitbox = attacker.ActivateHitboxForBodyPart(move.bodyPart);
 
         if (hitbox != null)
         {
@@ -193,8 +181,10 @@ public class CombatManager : MonoBehaviour
 
             hitbox.HitDetected += onHit;
 
+            float activeTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : hitboxActiveDuration;
             float timer = 0f;
-            while (timer < hitboxActiveDuration && !hitDetected)
+
+            while (timer < activeTime && !hitDetected)
             {
                 timer += Time.deltaTime;
                 yield return null;
@@ -204,26 +194,26 @@ public class CombatManager : MonoBehaviour
             attacker.DeactivateAllHitboxes();
         }
 
-        // Schaden anwenden
+        // Treffer verarbeiten
         if (hitDetected && detectedHurtbox != null)
         {
-            float damage = GetDamageForBodyPart(attackingBodyPart);
+            float damage = move.damage;
 
             if (detectedHurtbox.Owner.IsBlocking)
             {
                 damage *= blockDamageMultiplier;
-                Debug.Log($"{detectedHurtbox.Owner.name} hat den Angriff geblockt!");
+                Debug.Log($"{detectedHurtbox.Owner.name} hat geblockt!");
             }
 
-            detectedHurtbox.Owner.TakeDamage(damage);
+            detectedHurtbox.Owner.TakeDamage(damage, move.targetZone);
         }
         else
         {
             Debug.Log($"{attacker.name} hat verfehlt.");
         }
 
-        // Restliche Lock-Zeit abwarten (abzüglich bereits vergangener Zeit)
-        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay - hitboxActiveDuration);
+        float activeHitboxTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : hitboxActiveDuration;
+        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay - activeHitboxTime);
         yield return new WaitForSeconds(remainingLockTime);
 
         yield return WaitUntilAttackAnimationCanEnd(attacker);
@@ -250,33 +240,18 @@ public class CombatManager : MonoBehaviour
 
         while (attacker != null && attacker.IsInAttackTaggedAnimation())
         {
-            float animationPercent = attacker.GetCurrentAttackAnimationNormalizedTime();
-
-            if (animationPercent >= attackEndPercent)
+            if (attacker.GetCurrentAttackAnimationNormalizedTime() >= attackEndPercent)
                 yield break;
 
             timer += Time.deltaTime;
 
             if (timer >= maximumExtraAnimationWait)
             {
-                Debug.LogWarning($"{attacker.name} attack animation wait ended by fallback.");
+                Debug.LogWarning($"{attacker.name}: Fallback — Animation-Wait abgebrochen.");
                 yield break;
             }
 
             yield return null;
         }
-    }
-
-    private float GetDamageForBodyPart(BodyPart bodyPart)
-    {
-        if (IsKick(bodyPart))
-            return kickDamage;
-
-        return punchDamage;
-    }
-
-    private bool IsKick(BodyPart bodyPart)
-    {
-        return bodyPart == BodyPart.LeftLeg || bodyPart == BodyPart.RightLeg;
     }
 }
