@@ -37,6 +37,14 @@ public class MoveData : ScriptableObject
     [Tooltip("Maximale Distanz zum Gegner für einen Treffer. Typisch: 1.0–2.0 m.")]
     public float attackRange = 1.5f;
 
+    /// <summary>Zieldistanz zum Gegner, zu der beim Ausführen hingelerpt wird. 0 = kein Step.</summary>
+    [Tooltip("Distanz zum Gegner zu der beim Angriff hingelerpt wird (m). 0 = kein Step.")]
+    public float attackStepDistance = 0f;
+
+    /// <summary>Geschwindigkeit des Attack-Steps in m/s.</summary>
+    [Tooltip("Wie schnell zum Gegner hingelerpt wird (m/s).")]
+    public float attackStepSpeed = 5f;
+
     [Header("Animation")]
     /// <summary>AnimationClip, der für diesen Move abgespielt wird.</summary>
     public AnimationClip animationClip;
@@ -47,4 +55,9 @@ public class MoveData : ScriptableObject
 
     /// <summary>Wie lange die Hitbox dieses Moves aktiv bleibt (in Sekunden).</summary>
     public float hitboxActiveTime = 0.2f;
+
+    /// <summary>Geschwindigkeit mit der IK die Hand/Fuß zum Ziel zieht (Weight-Lerp pro Sekunde). 0 = kein IK.</summary>
+    [Tooltip("Wie schnell IK die Hand/Fuß zum Ziel zieht. 0 = kein IK. Niedrig = weich, Hoch = hart.")]
+    [Range(0f, 30f)]
+    public float ikWeightSpeed = 0f;
 }

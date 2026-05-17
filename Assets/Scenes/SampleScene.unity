@@ -1879,6 +1879,7 @@ MonoBehaviour:
   hitStaggerDuration: 0.5
   animator: {fileID: 919132148950792027}
   moveAnimationController: {fileID: 919132148950792028}
+  characterController: {fileID: 0}
   attackHitboxes:
   - {fileID: 1204113181}
   - {fileID: 590628715}
@@ -3502,7 +3503,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.5
+  m_Radius: 0.2
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
@@ -3658,7 +3659,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 8c17f4b599ea9d74aaf3d649bdd09550, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -3686,7 +3687,7 @@ CharacterController:
   m_Enabled: 1
   serializedVersion: 3
   m_Height: 2
-  m_Radius: 0.5
+  m_Radius: 0.2
   m_SlopeLimit: 45
   m_StepOffset: 0.3
   m_SkinWidth: 0.08
@@ -3711,6 +3712,7 @@ MonoBehaviour:
   hitStaggerDuration: 0.5
   animator: {fileID: 2145589700}
   moveAnimationController: {fileID: 2145589706}
+  characterController: {fileID: 0}
   attackHitboxes: []
   attackLookTarget: {fileID: 1294760116}
   attackLookRotationSpeed: 720
@@ -3783,17 +3785,17 @@ MonoBehaviour:
   locomotionStateName: Locomotion
   hitReactions:
   - zone: 0
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: 312dcee85a5098e43976dbb41e25d1c5, type: 2}
   - zone: 1
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: b4f4225bdd1efef47856d84a30175480, type: 2}
   - zone: 2
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: f5bf02fd61370dd41a7f083ada946e05, type: 2}
   - zone: 3
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: 09363db97f5a0c643af2de53d64530b3, type: 2}
   - zone: 4
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: 2e86cdf5fa18ae1409ffc414f6ca83ce, type: 2}
   - zone: 5
-    clip: {fileID: 7400000, guid: d59c7efa90e54194b94f5d79f3e75b22, type: 2}
+    clip: {fileID: 7400000, guid: 1b5da4c827d1a6c49a62bb2b1a94797c, type: 2}
 --- !u!114 &2145589707
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3821,7 +3823,7 @@ MonoBehaviour:
   - zone: 5
     boneTransform: {fileID: 127631272}
   autoSetupHurtboxes: 1
-  zoneHurtboxRadius: 0.03
+  zoneHurtboxRadius: 0.001
 --- !u!114 &2145589708
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3835,6 +3837,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 2145589700}
+  weightLerpSpeed: 15
 --- !u!4 &57086944203391623
 Transform:
   m_ObjectHideFlags: 0
@@ -4160,7 +4163,7 @@ Animator:
   m_Controller: {fileID: 9100000, guid: 8c17f4b599ea9d74aaf3d649bdd09550, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
-  m_ApplyRootMotion: 1
+  m_ApplyRootMotion: 0
   m_LinearVelocityBlending: 0
   m_StabilizeFeet: 0
   m_WarningMessage: 
@@ -4198,6 +4201,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   animator: {fileID: 919132148950792027}
+  weightLerpSpeed: 15
 --- !u!4 &1017971966661819735
 Transform:
   m_ObjectHideFlags: 0

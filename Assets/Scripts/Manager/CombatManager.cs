@@ -173,6 +173,10 @@ public class CombatManager : MonoBehaviour
                   $"Registry: {(zoneRegistry != null ? "gefunden" : "NULL")} | " +
                   $"IK-Target: {(ikTarget != null ? ikTarget.name : "NULL")}");
 
+        // Attack-Step: Angreifer gleitet auf Zieldistanz (parallel zur Animation)
+        if (move.attackStepDistance > 0f)
+            attacker.StartAttackStep(defender.transform.position, move.attackStepDistance, move.attackStepSpeed);
+
         // Clip über MoveAnimationController abspielen (mit optionalem IK-Target)
         attacker.PlayMove(move, ikTarget);
 

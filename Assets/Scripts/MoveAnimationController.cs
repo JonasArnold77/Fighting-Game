@@ -219,22 +219,27 @@ public class MoveAnimationController : MonoBehaviour
     // -------------------------------------------------------------------------
 
     /// <summary>
+    /// Gibt true zurück solange eine Hit-Reaction-Animation abgespielt wird.
+    /// Wird von <see cref="Fighter"/> genutzt um Bewegung zu sperren bis die Animation fertig ist.
+    /// </summary>
+    public bool IsPlayingHitAnimation()
+    {
+        AnimatorStateInfo state = animator.GetCurrentAnimatorStateInfo(AnimatorLayer);
+        return state.shortNameHash == Hash_Hit_A || state.shortNameHash == Hash_Hit_B;
+    }
+
+    /// <summary>
     /// Wartet auf den Treffermoment (<see cref="ikActivationDelay"/>), aktiviert IK
     /// für die Dauer der Hitbox (<see cref="MoveData.hitboxActiveTime"/>),
     /// dann wird IK wieder deaktiviert.
     /// </summary>
     private IEnumerator ActivateIKDuringHit(MoveData move, Transform target)
     {
-        Debug.Log($"[IK] Coroutine gestartet – Ziel: {target.name}, BodyPart: {move.bodyPart}, Delay: {ikActivationDelay}s");
-
-        // Warten bis zur Hitbox-Aktivierung
         yield return new WaitForSeconds(ikActivationDelay);
 
         AvatarIKGoal goal = BodyPartToIKGoal(move.bodyPart);
-        Debug.Log($"[IK] EnableIK aufgerufen – Goal: {goal}, Target: {target.name}");
-        attackIKController.EnableIK(goal, target);
+        attackIKController.EnableIK(goal, target, move.ikWeightSpeed);
 
-        // IK für die Dauer der Hitbox aktiv halten
         float activeTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : 0.2f;
         yield return new WaitForSeconds(activeTime);
 

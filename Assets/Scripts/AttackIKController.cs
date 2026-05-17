@@ -14,8 +14,9 @@ public class AttackIKController : MonoBehaviour
 {
     [SerializeField] private Animator animator;
 
-    // Geschwindigkeit mit der das IK-Weight ein- bzw. ausgeblendet wird (pro Sekunde)
-    private const float WeightLerpSpeed = 15f;
+    [Tooltip("Geschwindigkeit mit der die Hand zum Ziel gezogen wird (Weight-Lerp pro Sekunde).\n" +
+             "Niedrig (1–5) = sanft/langsam. Hoch (15–30) = schnell/hart.")]
+    [SerializeField, Range(1f, 30f)] private float weightLerpSpeed = 15f;
 
     private AvatarIKGoal activeGoal;
     private Transform    activeTarget;
@@ -39,11 +40,14 @@ public class AttackIKController : MonoBehaviour
     /// </summary>
     /// <param name="limb">Avatar-IK-Goal (z.B. LeftHand, RightFoot).</param>
     /// <param name="target">Transform des Trefferziels (Position + Rotation).</param>
-    public void EnableIK(AvatarIKGoal limb, Transform target)
+    public void EnableIK(AvatarIKGoal limb, Transform target, float speed = -1f)
     {
         activeGoal   = limb;
         activeTarget = target;
         ikEnabled    = true;
+
+        if (speed >= 0f)
+            weightLerpSpeed = speed;
     }
 
     /// <summary>
@@ -71,7 +75,7 @@ public class AttackIKController : MonoBehaviour
             Debug.Log($"[IK] OnAnimatorIK läuft – Goal: {activeGoal}, Target: {activeTarget?.name}, Weight beginnt zu steigen");
 
         // Sanftes Lerpen – nie direkt auf 0 oder 1 setzen
-        currentWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * WeightLerpSpeed);
+        currentWeight = Mathf.Lerp(currentWeight, targetWeight, Time.deltaTime * weightLerpSpeed);
 
         // Weight immer anwenden (auch während des Ausblendens)
         animator.SetIKPositionWeight(activeGoal, currentWeight);

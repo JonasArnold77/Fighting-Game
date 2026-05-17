@@ -21,6 +21,9 @@ MonoBehaviour:
   comboType: 0
   magicTags: 
   attackRange: 1.8
+  attackStepDistance: 1.25
+  attackStepSpeed: 5
   animationClip: {fileID: 7400000, guid: 1dc9e48f297a61c418fcfad50676950c, type: 2}
   animationSpeed: 1
   hitboxActiveTime: 0.2
+  ikWeightSpeed: 26

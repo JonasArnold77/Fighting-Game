@@ -20,6 +20,7 @@ public class Fighter : MonoBehaviour
     [Header("References")]
     [SerializeField] private Animator animator;
     [SerializeField] private MoveAnimationController moveAnimationController;
+    [SerializeField] private CharacterController characterController;
 
     [Header("Attack Hitboxes")]
     [Tooltip("Je eine AttackHitbox pro Körperteil (LeftHand, RightHand, LeftLeg, RightLeg).")]
@@ -57,6 +58,7 @@ public class Fighter : MonoBehaviour
     private bool isPostAttackRotating;
     private float attackStartTime;
     private Coroutine hitStaggerCoroutine;
+    private Coroutine stepCoroutine;
 
     public bool CanMove => !IsAttacking && !IsBlocking && !IsHit;
 
@@ -64,6 +66,9 @@ public class Fighter : MonoBehaviour
     {
         if (animator == null)
             animator = GetComponent<Animator>();
+
+        if (characterController == null)
+            characterController = GetComponent<CharacterController>();
 
         if (moveAnimationController == null)
             moveAnimationController = GetComponent<MoveAnimationController>();
@@ -135,6 +140,48 @@ public class Fighter : MonoBehaviour
         DeactivateAllHitboxes();
         SetMoveSpeed(0f);
         moveAnimationController?.PlayLocomotion();
+
+        if (stepCoroutine != null)
+        {
+            StopCoroutine(stepCoroutine);
+            stepCoroutine = null;
+        }
+    }
+
+    /// <summary>
+    /// Startet einen Attack-Step: bewegt den Fighter glatt auf <paramref name="targetDistance"/>
+    /// Meter Abstand zu <paramref name="targetPosition"/>. Läuft parallel zur Angriffsanimation.
+    /// </summary>
+    public void StartAttackStep(Vector3 targetPosition, float targetDistance, float speed)
+    {
+        if (stepCoroutine != null)
+            StopCoroutine(stepCoroutine);
+
+        stepCoroutine = StartCoroutine(AttackStepRoutine(targetPosition, targetDistance, speed));
+    }
+
+    private IEnumerator AttackStepRoutine(Vector3 targetPosition, float targetDistance, float speed)
+    {
+        while (true)
+        {
+            Vector3 toTarget   = targetPosition - transform.position;
+            toTarget.y         = 0f;
+            float currentDist  = toTarget.magnitude;
+            float diff         = currentDist - targetDistance;
+
+            if (Mathf.Abs(diff) < 0.02f)
+                yield break;
+
+            // Richtung: positiv = zum Ziel, negativ = weg vom Ziel
+            Vector3 direction = toTarget.normalized * Mathf.Sign(diff);
+
+            if (characterController != null)
+                characterController.Move(direction * speed * Time.deltaTime);
+            else
+                transform.position += direction * speed * Time.deltaTime;
+
+            yield return null;
+        }
     }
 
     /// <summary>
@@ -321,8 +368,19 @@ public class Fighter : MonoBehaviour
     {
         IsHit = true;
         SetMoveSpeed(0f);
+
+        // Mindest-Stagger-Zeit abwarten
         yield return new WaitForSeconds(hitStaggerDuration);
+
+        // Dann warten bis die Hit-Animation wirklich fertig ist
+        if (moveAnimationController != null)
+        {
+            while (moveAnimationController.IsPlayingHitAnimation())
+                yield return null;
+        }
+
         IsHit = false;
+        moveAnimationController?.PlayLocomotion();
         hitStaggerCoroutine = null;
     }
 
