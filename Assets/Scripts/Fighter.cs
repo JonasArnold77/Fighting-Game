@@ -58,7 +58,6 @@ public class Fighter : MonoBehaviour
     private bool isPostAttackRotating;
     private float attackStartTime;
     private Coroutine hitStaggerCoroutine;
-    private Coroutine stepCoroutine;
 
     public bool CanMove => !IsAttacking && !IsBlocking && !IsHit;
 
@@ -113,6 +112,9 @@ public class Fighter : MonoBehaviour
         attackStartTime = Time.time;
 
         SetMoveSpeed(0f);
+
+        if (animator != null)
+            animator.applyRootMotion = false;
     }
 
     /// <summary>
@@ -141,44 +143,51 @@ public class Fighter : MonoBehaviour
         SetMoveSpeed(0f);
         moveAnimationController?.PlayLocomotion();
 
-        if (stepCoroutine != null)
-        {
-            StopCoroutine(stepCoroutine);
-            stepCoroutine = null;
-        }
+        if (animator != null)
+            animator.applyRootMotion = true;
     }
 
     /// <summary>
     /// Startet einen Attack-Step: bewegt den Fighter glatt auf <paramref name="targetDistance"/>
     /// Meter Abstand zu <paramref name="targetPosition"/>. Läuft parallel zur Angriffsanimation.
     /// </summary>
-    public void StartAttackStep(Vector3 targetPosition, float targetDistance, float speed)
+    /// <summary>
+    /// Lerpt den Fighter auf genau <paramref name="targetDistance"/> Meter Abstand zum Ziel.
+    /// Zielposition wird einmal am Anfang berechnet (Gegner-Bewegung danach ignoriert).
+    /// Per yield return aufrufen — blockiert bis der Step abgeschlossen ist.
+    /// </summary>
+    public IEnumerator StepToDistance(Transform target, float targetDistance, float speed)
     {
-        if (stepCoroutine != null)
-            StopCoroutine(stepCoroutine);
+        if (target == null)
+            yield break;
 
-        stepCoroutine = StartCoroutine(AttackStepRoutine(targetPosition, targetDistance, speed));
-    }
+        // Einmalige Berechnung — Gegner-Bewegung danach irrelevant
+        Vector3 toTarget  = target.position - transform.position;
+        toTarget.y        = 0f;
+        float currentDist = toTarget.magnitude;
+        float diff        = currentDist - targetDistance;
 
-    private IEnumerator AttackStepRoutine(Vector3 targetPosition, float targetDistance, float speed)
-    {
+        if (Mathf.Abs(diff) < 0.02f)
+            yield break;
+
+        Vector3 stepTarget = transform.position + toTarget.normalized * diff;
+        stepTarget.y       = transform.position.y;
+
         while (true)
         {
-            Vector3 toTarget   = targetPosition - transform.position;
-            toTarget.y         = 0f;
-            float currentDist  = toTarget.magnitude;
-            float diff         = currentDist - targetDistance;
+            Vector3 remaining = stepTarget - transform.position;
+            remaining.y       = 0f;
 
-            if (Mathf.Abs(diff) < 0.02f)
+            if (remaining.magnitude < 0.02f)
                 yield break;
 
-            // Richtung: positiv = zum Ziel, negativ = weg vom Ziel
-            Vector3 direction = toTarget.normalized * Mathf.Sign(diff);
+            float   step = Mathf.Min(speed * Time.deltaTime, remaining.magnitude);
+            Vector3 move = remaining.normalized * step;
 
             if (characterController != null)
-                characterController.Move(direction * speed * Time.deltaTime);
+                characterController.Move(move);
             else
-                transform.position += direction * speed * Time.deltaTime;
+                transform.position += move;
 
             yield return null;
         }
