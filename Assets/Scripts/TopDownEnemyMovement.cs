@@ -11,6 +11,8 @@ public class TopDownEnemyMovement : MonoBehaviour
     [SerializeField] private float stoppingDistance = 1.5f;
     [Tooltip("Distanz, ab der der Gegner anfängt dem Spieler zu folgen.")]
     [SerializeField] private float detectionRange = 15f;
+    [Tooltip("Wartezeit nach dem Anhalten bevor der Gegner wieder losläuft (s).")]
+    [SerializeField] private float stopWaitDuration = 1.2f;
 
     [Header("Gravity")]
     [SerializeField] private float gravity = -20f;
@@ -22,6 +24,8 @@ public class TopDownEnemyMovement : MonoBehaviour
     [SerializeField] private Transform playerTransform;
 
     private float verticalVelocity;
+    private float stopWaitTimer = 0f;
+    private bool  wasChasing    = false;
 
     private void Awake()
     {
@@ -56,9 +60,34 @@ public class TopDownEnemyMovement : MonoBehaviour
     {
         float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
 
-        // Außerhalb der Detection Range oder zu nah → stehen bleiben
-        if (distanceToPlayer > detectionRange || distanceToPlayer <= stoppingDistance)
+        // Außerhalb der Detection Range → stehen bleiben, Timer zurücksetzen
+        if (distanceToPlayer > detectionRange)
         {
+            fighter.SetMoveSpeed(0f);
+            ApplyVerticalMovementOnly();
+            wasChasing    = false;
+            stopWaitTimer = 0f;
+            return;
+        }
+
+        // Innerhalb der Stopping Distance → stoppen und Wartezeit starten
+        if (distanceToPlayer <= stoppingDistance)
+        {
+            if (wasChasing)
+            {
+                stopWaitTimer = stopWaitDuration;
+                wasChasing    = false;
+            }
+
+            fighter.SetMoveSpeed(0f);
+            ApplyVerticalMovementOnly();
+            return;
+        }
+
+        // Wartezeit nach dem Anhalten läuft noch → nicht bewegen
+        if (stopWaitTimer > 0f)
+        {
+            stopWaitTimer -= Time.deltaTime;
             fighter.SetMoveSpeed(0f);
             ApplyVerticalMovementOnly();
             return;
@@ -76,6 +105,7 @@ public class TopDownEnemyMovement : MonoBehaviour
 
         // Animation treiben
         fighter.SetMoveSpeed(1f);
+        wasChasing = true;
 
         // Zum Spieler drehen
         RotateTowards(directionToPlayer);

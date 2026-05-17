@@ -20,6 +20,7 @@ public class AttackIKController : MonoBehaviour
 
     private AvatarIKGoal activeGoal;
     private Transform    activeTarget;
+    private Vector3      activeOffset;
     private bool         ikEnabled;
     private float        currentWeight;
 
@@ -40,10 +41,11 @@ public class AttackIKController : MonoBehaviour
     /// </summary>
     /// <param name="limb">Avatar-IK-Goal (z.B. LeftHand, RightFoot).</param>
     /// <param name="target">Transform des Trefferziels (Position + Rotation).</param>
-    public void EnableIK(AvatarIKGoal limb, Transform target, float speed = -1f)
+    public void EnableIK(AvatarIKGoal limb, Transform target, float speed = -1f, Vector3 offset = default)
     {
         activeGoal   = limb;
         activeTarget = target;
+        activeOffset = offset;
         ikEnabled    = true;
 
         if (speed >= 0f)
@@ -84,8 +86,8 @@ public class AttackIKController : MonoBehaviour
         if (activeTarget == null)
             return;
 
-        // Position: direkt auf Ziel
-        animator.SetIKPosition(activeGoal, activeTarget.position);
+        // Position: Ziel + optionaler Offset
+        animator.SetIKPosition(activeGoal, activeTarget.position + activeOffset);
 
         // Rotation: Glied schaut zum Ziel
         Vector3 directionToTarget = activeTarget.position - transform.position;

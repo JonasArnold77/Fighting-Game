@@ -58,6 +58,13 @@ public class MoveData : ScriptableObject
 
     /// <summary>Geschwindigkeit mit der IK die Hand/Fuß zum Ziel zieht (Weight-Lerp pro Sekunde). 0 = kein IK.</summary>
     [Tooltip("Wie schnell IK die Hand/Fuß zum Ziel zieht. 0 = kein IK. Niedrig = weich, Hoch = hart.")]
-    [Range(0f, 30f)]
     public float ikWeightSpeed = 0f;
+
+    /// <summary>Wie lange IK aktiv bleibt (s). 0 = hitboxActiveTime verwenden.</summary>
+    [Tooltip("Wie lange IK aktiv bleibt (s). 0 = hitboxActiveTime wird verwendet.")]
+    public float ikActiveDuration = 0f;
+
+    /// <summary>Welt-Offset der auf die IK-Zielposition addiert wird. Z.B. (0, -0.5, 0) für Kick zum Kopf.</summary>
+    [Tooltip("Offset auf die IK-Zielposition (Weltkoordinaten). Nützlich wenn Fuß/Hand das Ziel nicht direkt erreichen kann.")]
+    public Vector3 ikTargetOffset = Vector3.zero;
 }

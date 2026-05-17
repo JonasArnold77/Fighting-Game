@@ -238,9 +238,11 @@ public class MoveAnimationController : MonoBehaviour
         yield return new WaitForSeconds(ikActivationDelay);
 
         AvatarIKGoal goal = BodyPartToIKGoal(move.bodyPart);
-        attackIKController.EnableIK(goal, target, move.ikWeightSpeed);
+        attackIKController.EnableIK(goal, target, move.ikWeightSpeed, move.ikTargetOffset);
 
-        float activeTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : 0.2f;
+        float activeTime = move.ikActiveDuration > 0f ? move.ikActiveDuration
+                         : move.hitboxActiveTime  > 0f ? move.hitboxActiveTime
+                         : 0.2f;
         yield return new WaitForSeconds(activeTime);
 
         attackIKController.DisableIK();

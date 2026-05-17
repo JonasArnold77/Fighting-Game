@@ -3639,6 +3639,7 @@ GameObject:
   - component: {fileID: 2145589706}
   - component: {fileID: 2145589707}
   - component: {fileID: 2145589708}
+  - component: {fileID: 2145589709}
   m_Layer: 0
   m_Name: Enemy
   m_TagString: Untagged
@@ -3760,8 +3761,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 3
   rotationSpeed: 10
-  stoppingDistance: 0.75
+  stoppingDistance: 1.2
   detectionRange: 15
+  stopWaitDuration: 0.3
   gravity: -20
   groundedVelocity: -2
   characterController: {fileID: 2145589701}
@@ -3838,6 +3840,22 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   animator: {fileID: 2145589700}
   weightLerpSpeed: 15
+--- !u!114 &2145589709
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2145589699}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5886216f3eca038409722bc20a8d993d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  flashColor: {r: 1, g: 0.25, b: 0, a: 1}
+  flashIntensity: 12
+  flashRange: 0.3
+  flashDuration: 0.7
 --- !u!4 &57086944203391623
 Transform:
   m_ObjectHideFlags: 0

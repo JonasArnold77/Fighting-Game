@@ -24,6 +24,8 @@ MonoBehaviour:
   attackStepDistance: 1.8
   attackStepSpeed: 5
   animationClip: {fileID: 7400000, guid: 83600498835c1614883698c71e1e9e2f, type: 2}
-  animationSpeed: 1
+  animationSpeed: 1.6
   hitboxActiveTime: 0.2
   ikWeightSpeed: 15
+  ikActiveDuration: 0.02
+  ikTargetOffset: {x: 0, y: 0.5, z: 0}

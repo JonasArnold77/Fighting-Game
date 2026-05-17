@@ -363,6 +363,7 @@ public class Fighter : MonoBehaviour
         Health -= amount;
         Health = Mathf.Max(Health, 0f);
 
+        GetComponentInChildren<HitZoneFlash>()?.Flash(hitZone);
         moveAnimationController?.PlayHitReaction(hitZone);
 
         if (hitStaggerCoroutine != null)
