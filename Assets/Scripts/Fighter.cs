@@ -110,8 +110,15 @@ public class Fighter : MonoBehaviour
         SetMoveSpeed(0f);
     }
 
-    /// <summary>Spielt einen Move über den MoveAnimationController ab.</summary>
-    public void PlayMove(MoveData move)
+    /// <summary>
+    /// Spielt einen Move über den MoveAnimationController ab.
+    /// </summary>
+    /// <param name="move">MoveData mit AnimationClip und Körperteil-Infos.</param>
+    /// <param name="ikTarget">
+    /// Optionaler IK-Zielpunkt – typischerweise ein Bone-Transform des Gegners
+    /// (aus <see cref="HurtboxZoneRegistry"/>). null = kein IK.
+    /// </param>
+    public void PlayMove(MoveData move, Transform ikTarget = null)
     {
         if (moveAnimationController == null)
         {
@@ -119,7 +126,7 @@ public class Fighter : MonoBehaviour
             return;
         }
 
-        moveAnimationController.PlayMove(move);
+        moveAnimationController.PlayMove(move, ikTarget);
     }
 
     public void StopAttack()

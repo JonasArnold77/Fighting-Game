@@ -33,6 +33,10 @@ public class MoveData : ScriptableObject
     /// <summary>Magische Elemente, die auf diesen Move wirken (optional, mehrere möglich).</summary>
     public MagicTag[] magicTags;
 
+    /// <summary>Maximale Distanz (in Metern) zwischen Angreifer und Ziel, damit ein Treffer registriert wird.</summary>
+    [Tooltip("Maximale Distanz zum Gegner für einen Treffer. Typisch: 1.0–2.0 m.")]
+    public float attackRange = 1.5f;
+
     [Header("Animation")]
     /// <summary>AnimationClip, der für diesen Move abgespielt wird.</summary>
     public AnimationClip animationClip;

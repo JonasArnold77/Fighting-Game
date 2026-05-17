@@ -20,6 +20,7 @@ MonoBehaviour:
   damage: 0
   comboType: 0
   magicTags: 
+  attackRange: 1.8
   animationClip: {fileID: 7400000, guid: d4f072f4c124e044494dacf9b8e9b62a, type: 2}
   animationSpeed: 1
   hitboxActiveTime: 0.2

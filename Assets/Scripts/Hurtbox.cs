@@ -15,6 +15,12 @@ public class Hurtbox : MonoBehaviour
 
     public Fighter Owner => owner;
 
+    /// <summary>
+    /// Setzt den Owner zur Laufzeit (z.B. wenn die Hurtbox automatisch
+    /// über <see cref="HurtboxZoneRegistry"/> erzeugt wird).
+    /// </summary>
+    public void SetOwner(Fighter fighter) => owner = fighter;
+
     private void Awake()
     {
         Collider col = GetComponent<Collider>();

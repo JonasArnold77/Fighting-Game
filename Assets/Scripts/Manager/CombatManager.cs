@@ -160,60 +160,53 @@ public class CombatManager : MonoBehaviour
 
         yield return attacker.RotateToCubeBeforeAttackAnimation();
 
-        // Clip über MoveAnimationController abspielen
-        attacker.PlayMove(move);
+        // Defender und IK-Zielpunkt bestimmen
+        Fighter defender = isPlayerAttack ? enemy : player;
+        HurtboxZoneRegistry zoneRegistry = defender != null
+            ? defender.GetComponentInChildren<HurtboxZoneRegistry>()
+            : null;
+        Transform ikTarget = zoneRegistry != null
+            ? zoneRegistry.GetZoneTransform(move.targetZone)
+            : null;
+
+        Debug.Log($"[CombatManager] Angriff: {move.moveName} | TargetZone: {move.targetZone} | " +
+                  $"Registry: {(zoneRegistry != null ? "gefunden" : "NULL")} | " +
+                  $"IK-Target: {(ikTarget != null ? ikTarget.name : "NULL")}");
+
+        // Clip über MoveAnimationController abspielen (mit optionalem IK-Target)
+        attacker.PlayMove(move, ikTarget);
 
         yield return new WaitForSeconds(attackImpactDelay);
 
-        // Hitbox aktivieren
+        // Treffer per Distanz-Check: Ist der Gegner nah genug?
         bool hitDetected = false;
-        Hurtbox detectedHurtbox = null;
 
-        AttackHitbox hitbox = attacker.ActivateHitboxForBodyPart(move.bodyPart);
-
-        if (hitbox != null)
+        if (defender != null)
         {
-            Action<Hurtbox> onHit = (hurtbox) =>
-            {
-                hitDetected = true;
-                detectedHurtbox = hurtbox;
-            };
-
-            hitbox.HitDetected += onHit;
-
-            float activeTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : hitboxActiveDuration;
-            float timer = 0f;
-
-            while (timer < activeTime && !hitDetected)
-            {
-                timer += Time.deltaTime;
-                yield return null;
-            }
-
-            hitbox.HitDetected -= onHit;
-            attacker.DeactivateAllHitboxes();
+            float distance = Vector3.Distance(attacker.transform.position, defender.transform.position);
+            hitDetected = distance <= move.attackRange;
         }
 
         // Treffer verarbeiten
-        if (hitDetected && detectedHurtbox != null)
+        if (hitDetected && defender != null)
         {
             float damage = move.damage;
 
-            if (detectedHurtbox.Owner.IsBlocking)
+            if (defender.IsBlocking)
             {
                 damage *= blockDamageMultiplier;
-                Debug.Log($"{detectedHurtbox.Owner.name} hat geblockt!");
+                Debug.Log($"{defender.name} hat geblockt!");
             }
 
-            detectedHurtbox.Owner.TakeDamage(damage, move.targetZone);
+            defender.TakeDamage(damage, move.targetZone);
         }
         else
         {
             Debug.Log($"{attacker.name} hat verfehlt.");
         }
 
-        float activeHitboxTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : hitboxActiveDuration;
-        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay - activeHitboxTime);
+        // Restliche Lock-Zeit nach dem Impact-Moment abwarten
+        float remainingLockTime = Mathf.Max(0f, attackLockDuration - attackImpactDelay);
         yield return new WaitForSeconds(remainingLockTime);
 
         yield return WaitUntilAttackAnimationCanEnd(attacker);

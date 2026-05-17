@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -16,7 +17,8 @@ public struct HitReactionEntry
 }
 
 /// <summary>
-/// Steuert alle Kampf-Animationen über einen AnimatorOverrideController.
+/// Steuert alle Kampf-Animationen über einen AnimatorOverrideController
+/// und optional Inverse Kinematics über einen AttackIKController.
 ///
 /// Warum zwei States pro Typ?
 ///   CrossFade zu einem bereits aktiven State startet ihn nicht neu.
@@ -33,6 +35,13 @@ public class MoveAnimationController : MonoBehaviour
 {
     [SerializeField] private Animator animator;
 
+    [Header("IK")]
+    [Tooltip("Optional – wenn gesetzt, wird IK während des Treffermoments aktiviert.")]
+    [SerializeField] private AttackIKController attackIKController;
+
+    [Tooltip("Sekunden nach Animationsstart, nach denen IK aktiviert wird (sollte dem attackImpactDelay im CombatManager entsprechen).")]
+    [SerializeField] private float ikActivationDelay = 0.35f;
+
     [Header("Locomotion")]
     [Tooltip("Name des Idle/Walk-States im Animator (z.B. 'Locomotion').")]
     [SerializeField] private string locomotionStateName = "Locomotion";
@@ -41,13 +50,13 @@ public class MoveAnimationController : MonoBehaviour
     [Tooltip("Einen Eintrag pro TargetZone konfigurieren.")]
     [SerializeField] private HitReactionEntry[] hitReactions;
 
-    // State-Hashes
+    // --- State-Hashes (keine Magic Strings) -----------------------------------
     private static readonly int Hash_Attack_A = Animator.StringToHash("GenericAttack_A");
     private static readonly int Hash_Attack_B = Animator.StringToHash("GenericAttack_B");
     private static readonly int Hash_Hit_A    = Animator.StringToHash("GenericHit_A");
     private static readonly int Hash_Hit_B    = Animator.StringToHash("GenericHit_B");
 
-    // Clip-Namen für Auto-Erkennung
+    // Clip-Namen für Auto-Erkennung der Placeholder
     private const string Name_Attack_A = "GenericAttack_A";
     private const string Name_Attack_B = "GenericAttack_B";
     private const string Name_Hit_A    = "GenericHit_A";
@@ -58,6 +67,7 @@ public class MoveAnimationController : MonoBehaviour
 
     private AnimatorOverrideController overrideController;
     private int hashLocomotion;
+    private bool hasLocomotionState;
 
     private AnimationClip attackPlaceholderA;
     private AnimationClip attackPlaceholderB;
@@ -68,6 +78,9 @@ public class MoveAnimationController : MonoBehaviour
     private bool useAttackA = true;
     private bool useHitA    = true;
 
+    // Laufende IK-Coroutine (wird beim nächsten PlayMove gestoppt)
+    private Coroutine ikCoroutine;
+
     private void Awake()
     {
         if (animator == null)
@@ -76,7 +89,13 @@ public class MoveAnimationController : MonoBehaviour
         overrideController = new AnimatorOverrideController(animator.runtimeAnimatorController);
         animator.runtimeAnimatorController = overrideController;
 
-        hashLocomotion = Animator.StringToHash(locomotionStateName);
+        hashLocomotion     = Animator.StringToHash(locomotionStateName);
+        hasLocomotionState = animator.HasState(AnimatorLayer, hashLocomotion);
+
+        if (!hasLocomotionState && !string.IsNullOrEmpty(locomotionStateName))
+            Debug.LogWarning($"[MoveAnimationController] Locomotion-State '{locomotionStateName}' nicht im Animator gefunden. " +
+                             $"Den Namen des Idle/Walk-States unter 'Locomotion State Name' im Inspector eintragen, " +
+                             $"oder das Feld leer lassen um PlayLocomotion zu deaktivieren.");
 
         AutoDetectPlaceholders();
 
@@ -96,8 +115,12 @@ public class MoveAnimationController : MonoBehaviour
     /// <summary>
     /// Spielt den Clip des übergebenen Moves ab normalizedTime 0f ab.
     /// Unterbricht jede laufende Animation, auch denselben Move.
+    /// Wenn <paramref name="ikTarget"/> gesetzt ist und ein AttackIKController
+    /// vorhanden ist, wird IK zum Treffermoment aktiviert.
     /// </summary>
-    public void PlayMove(MoveData move)
+    /// <param name="move">MoveData mit AnimationClip, BodyPart und hitboxActiveTime.</param>
+    /// <param name="ikTarget">Optionales Ziel für IK (z.B. Hurtbox-Transform des Gegners). null = kein IK.</param>
+    public void PlayMove(MoveData move, Transform ikTarget = null)
     {
         if (move == null)
         {
@@ -117,6 +140,9 @@ public class MoveAnimationController : MonoBehaviour
             return;
         }
 
+        // Laufende IK-Coroutine abbrechen und IK sofort deaktivieren
+        StopIKCoroutine();
+
         // Beide Slots auf den neuen Clip setzen –
         // egal in welchem State wir landen, der Clip stimmt.
         overrideController[attackPlaceholderA] = move.animationClip;
@@ -128,6 +154,12 @@ public class MoveAnimationController : MonoBehaviour
 
         animator.speed = move.animationSpeed;
         animator.CrossFade(targetHash, CrossFadeDuration, AnimatorLayer, 0f);
+
+        // IK-Coroutine starten, wenn Controller und Ziel vorhanden
+        if (attackIKController != null && ikTarget != null)
+        {
+            ikCoroutine = StartCoroutine(ActivateIKDuringHit(move, ikTarget));
+        }
     }
 
     /// <summary>
@@ -150,6 +182,9 @@ public class MoveAnimationController : MonoBehaviour
             return;
         }
 
+        // Aktive IK sofort beenden (Figur wurde getroffen, nicht Angreifer)
+        StopIKCoroutine();
+
         overrideController[hitPlaceholderA] = clip;
         overrideController[hitPlaceholderB] = clip;
 
@@ -163,11 +198,77 @@ public class MoveAnimationController : MonoBehaviour
     /// <summary>
     /// Kehrt zum Locomotion-State zurück (Idle/Walk-Blend-Tree).
     /// Wird nach einem Angriff oder Treffer aufgerufen.
+    /// Beendet außerdem aktive IK.
     /// </summary>
     public void PlayLocomotion()
     {
+        StopIKCoroutine();
         animator.speed = 1f;
+
+        if (!hasLocomotionState)
+        {
+            Debug.LogWarning($"[MoveAnimationController] PlayLocomotion: State '{locomotionStateName}' nicht gefunden – CrossFade übersprungen.");
+            return;
+        }
+
         animator.CrossFade(hashLocomotion, CrossFadeDuration, AnimatorLayer, 0f);
+    }
+
+    // -------------------------------------------------------------------------
+    // IK
+    // -------------------------------------------------------------------------
+
+    /// <summary>
+    /// Wartet auf den Treffermoment (<see cref="ikActivationDelay"/>), aktiviert IK
+    /// für die Dauer der Hitbox (<see cref="MoveData.hitboxActiveTime"/>),
+    /// dann wird IK wieder deaktiviert.
+    /// </summary>
+    private IEnumerator ActivateIKDuringHit(MoveData move, Transform target)
+    {
+        Debug.Log($"[IK] Coroutine gestartet – Ziel: {target.name}, BodyPart: {move.bodyPart}, Delay: {ikActivationDelay}s");
+
+        // Warten bis zur Hitbox-Aktivierung
+        yield return new WaitForSeconds(ikActivationDelay);
+
+        AvatarIKGoal goal = BodyPartToIKGoal(move.bodyPart);
+        Debug.Log($"[IK] EnableIK aufgerufen – Goal: {goal}, Target: {target.name}");
+        attackIKController.EnableIK(goal, target);
+
+        // IK für die Dauer der Hitbox aktiv halten
+        float activeTime = move.hitboxActiveTime > 0f ? move.hitboxActiveTime : 0.2f;
+        yield return new WaitForSeconds(activeTime);
+
+        attackIKController.DisableIK();
+        ikCoroutine = null;
+    }
+
+    /// <summary>
+    /// Stoppt die laufende IK-Coroutine und deaktiviert IK sofort (Ausblenden via Lerp).
+    /// </summary>
+    private void StopIKCoroutine()
+    {
+        if (ikCoroutine != null)
+        {
+            StopCoroutine(ikCoroutine);
+            ikCoroutine = null;
+        }
+
+        attackIKController?.DisableIK();
+    }
+
+    /// <summary>
+    /// Mappt einen <see cref="BodyPart"/> auf das entsprechende <see cref="AvatarIKGoal"/>.
+    /// </summary>
+    private static AvatarIKGoal BodyPartToIKGoal(BodyPart bodyPart)
+    {
+        switch (bodyPart)
+        {
+            case BodyPart.L_Hand: return AvatarIKGoal.LeftHand;
+            case BodyPart.R_Hand: return AvatarIKGoal.RightHand;
+            case BodyPart.L_Leg:  return AvatarIKGoal.LeftFoot;
+            case BodyPart.R_Leg:  return AvatarIKGoal.RightFoot;
+            default:              return AvatarIKGoal.RightHand;
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -186,10 +287,10 @@ public class MoveAnimationController : MonoBehaviour
 
             string clipName = pair.Key.name;
 
-            if (clipName == Name_Attack_A) attackPlaceholderA = pair.Key;
+            if      (clipName == Name_Attack_A) attackPlaceholderA = pair.Key;
             else if (clipName == Name_Attack_B) attackPlaceholderB = pair.Key;
-            else if (clipName == Name_Hit_A) hitPlaceholderA = pair.Key;
-            else if (clipName == Name_Hit_B) hitPlaceholderB = pair.Key;
+            else if (clipName == Name_Hit_A)    hitPlaceholderA    = pair.Key;
+            else if (clipName == Name_Hit_B)    hitPlaceholderB    = pair.Key;
         }
     }
 
