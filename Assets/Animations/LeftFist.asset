@@ -27,3 +27,5 @@ MonoBehaviour:
   animationSpeed: 1.6
   hitboxActiveTime: 0.2
   ikWeightSpeed: 26
+  ikActiveDuration: 0.02
+  ikTargetOffset: {x: 0, y: 0, z: 0}

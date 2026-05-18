@@ -3,7 +3,8 @@ using UnityEngine;
 
 /// <summary>
 /// Lässt das getroffene Körperteil kurz aufleuchten.
-/// Platziert ein Point Light am Bone der getroffenen TargetZone und blendet es aus.
+/// Spawnt eine kleine Kugel mit emissivem Material am Bone der getroffenen Zone
+/// und blendet sie aus.
 ///
 /// Setup:
 ///   1. Komponente auf den Fighter-Root ziehen.
@@ -11,23 +12,22 @@ using UnityEngine;
 /// </summary>
 public class HitZoneFlash : MonoBehaviour
 {
-    [Header("Flash Settings")]
+    [Header("Flash Sphere")]
     [Tooltip("Farbe des Aufblitzens.")]
-    [SerializeField] private Color  flashColor     = new Color(1f, 0.25f, 0f);
+    [SerializeField] private Color flashColor = new Color(1f, 0.3f, 0f);
 
-    [Tooltip("Maximale Lichtintensität beim Aufblitzen.")]
-    [SerializeField] private float  flashIntensity = 4f;
+    [Tooltip("Maximale Emission-Intensität.")]
+    [SerializeField] private float flashIntensity = 6f;
 
-    [Tooltip("Reichweite des Point Lights (m).")]
-    [SerializeField] private float  flashRange     = 0.5f;
+    [Tooltip("Größe der Kugel (m).")]
+    [SerializeField] private float sphereSize = 0.08f;
 
-    [Tooltip("Wie lange das Licht ausgeblendet wird (s).")]
-    [SerializeField] private float  flashDuration  = 0.2f;
+    [Tooltip("Wie lange die Kugel ausgeblendet wird (s).")]
+    [SerializeField] private float flashDuration = 0.2f;
 
     // -------------------------------------------------------------------------
 
     private HurtboxZoneRegistry zoneRegistry;
-    private Light               flashLight;
     private Coroutine           flashCoroutine;
 
     private void Awake()
@@ -36,17 +36,6 @@ public class HitZoneFlash : MonoBehaviour
 
         if (zoneRegistry == null)
             zoneRegistry = GetComponentInParent<HurtboxZoneRegistry>();
-
-        // Point Light als Kind-Objekt erstellen
-        GameObject lightGO = new GameObject("HitFlashLight");
-        lightGO.transform.SetParent(transform);
-
-        flashLight           = lightGO.AddComponent<Light>();
-        flashLight.type      = LightType.Point;
-        flashLight.color     = flashColor;
-        flashLight.range     = flashRange;
-        flashLight.intensity = 0f;
-        flashLight.enabled   = false;
     }
 
     // -------------------------------------------------------------------------
@@ -54,8 +43,7 @@ public class HitZoneFlash : MonoBehaviour
     // -------------------------------------------------------------------------
 
     /// <summary>
-    /// Lässt die getroffene Zone kurz aufleuchten.
-    /// Wird von <see cref="Fighter.TakeDamage"/> aufgerufen.
+    /// Spawnt eine aufleuchtende Kugel an der getroffenen Zone.
     /// </summary>
     public void Flash(TargetZone zone)
     {
@@ -71,27 +59,62 @@ public class HitZoneFlash : MonoBehaviour
 
     private IEnumerator FlashRoutine(Transform bone)
     {
-        flashLight.color     = flashColor;
-        flashLight.range     = flashRange;
-        flashLight.intensity = flashIntensity;
-        flashLight.enabled   = true;
+        // Kugel erstellen
+        GameObject sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        sphere.transform.localScale = Vector3.one * sphereSize;
+
+        // Collider entfernen damit keine Physik-Konflikte entstehen
+        Destroy(sphere.GetComponent<Collider>());
+
+        // Shader automatisch erkennen (URP oder Built-in)
+        Shader shader = Shader.Find("Universal Render Pipeline/Unlit")
+                     ?? Shader.Find("Unlit/Color")
+                     ?? Shader.Find("Standard");
+
+        Material mat  = new Material(shader);
+        bool     isUrp = shader.name.Contains("Universal");
+
+        if (isUrp)
+        {
+            mat.SetColor("_BaseColor", flashColor * flashIntensity);
+        }
+        else
+        {
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_Color",         flashColor);
+            mat.SetColor("_EmissionColor", flashColor * flashIntensity);
+        }
+
+        sphere.GetComponent<Renderer>().material = mat;
 
         float timer = 0f;
 
         while (timer < flashDuration)
         {
-            // Bone-Position jeden Frame folgen (bewegt sich mit der Animation)
+            // Bone-Position jeden Frame folgen
             if (bone != null)
-                flashLight.transform.position = bone.position;
+                sphere.transform.position = bone.position;
 
-            flashLight.intensity = Mathf.Lerp(flashIntensity, 0f, timer / flashDuration);
+            // Farbe ausfaden
+            float t         = timer / flashDuration;
+            float intensity = Mathf.Lerp(flashIntensity, 0f, t);
+            Color current   = flashColor * intensity;
+
+            if (isUrp)
+                mat.SetColor("_BaseColor", current);
+            else
+                mat.SetColor("_EmissionColor", current);
+
+            // Kugel gleichzeitig schrumpfen lassen
+            float scale = Mathf.Lerp(sphereSize, 0f, t);
+            sphere.transform.localScale = Vector3.one * scale;
 
             timer += Time.deltaTime;
             yield return null;
         }
 
-        flashLight.intensity = 0f;
-        flashLight.enabled   = false;
-        flashCoroutine       = null;
+        Destroy(mat);
+        Destroy(sphere);
+        flashCoroutine = null;
     }
 }

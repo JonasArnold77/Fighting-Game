@@ -3349,7 +3349,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.7
+  m_Radius: 0.9
   m_Height: 2.4661183
   m_Direction: 1
   m_Center: {x: 0, y: 0.76694083, z: 0}
@@ -3853,8 +3853,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   flashColor: {r: 1, g: 0.25, b: 0, a: 1}
-  flashIntensity: 12
-  flashRange: 0.3
+  flashIntensity: 8
+  sphereSize: 0.3
   flashDuration: 0.7
 --- !u!4 &57086944203391623
 Transform:

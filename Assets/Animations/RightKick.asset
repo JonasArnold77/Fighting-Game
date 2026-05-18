@@ -15,7 +15,7 @@ MonoBehaviour:
   moveName: Right Kick
   icon: {fileID: 0}
   bodyPart: 3
-  targetZone: 2
+  targetZone: 4
   learnZone: 0
   damage: 0
   comboType: 0
